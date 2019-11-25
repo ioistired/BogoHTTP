@@ -15,6 +15,8 @@ def parse_content_range_header(h):
 	return range(int(start), int(stop)+1), int(length)
 
 def parse_content_disposition_header(h):
+	# https://github.com/jeroen/curl/issues/187
+	# https://tools.ietf.org/html/rfc5987#section-3.2.2
 	disposition, params = parse_header(h)
 	is_extended = 'filename*' in params
 	try:

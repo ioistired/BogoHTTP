@@ -47,7 +47,11 @@ async def amain():
 
 def main():
 	import asyncio
-	asyncio.get_event_loop().run_until_complete(amain())
+	coro = amain()
+	try:
+		asyncio.run(coro)
+	except AttributeError:
+		asyncio.get_event_loop().run_until_complete(coro)
 
 if __name__ == '__main__':
 	main()

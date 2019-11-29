@@ -2,39 +2,26 @@
 
 A port of [bogodownload](https://github.com/Roadcrosser/bogodownload) to HTTP for meemz.
 
-## Server demo
+## Demo
 
 ```
-$ echo 'your mother was a hamster and your father smelt of elderberries' > sick-burn.txt
-$ curl -i http://bogo.localhost:8080/sick-burn.txt
-HTTP/1.1 206 Partial Content
-Content-Range: bytes 6-6/64
-Content-Disposition: attachment; filename*=UTF-8''sick-burn.txt
-Server: BogoHTTP
-Content-Length: 1
-Content-Type: application/octet-stream
-Date: Mon, 25 Nov 2019 01:42:17 GMT
+$ dd if=/dev/urandom bs=1000 count=200 of=random-200KB.bin
+200+0 records in
+200+0 records out
+200000 bytes (200 kB, 195 KiB) copied, 0.00533823 s, 37.5 MB/s
+$ env BOGOHTTP_BASE_PATH=. ./server.py &
+$ ======== Running on http://0.0.0.0:8080 ========
+(Press CTRL+C to quit)
 
-o⏎
-$ curl -i http://bogo.localhost:8080/sick-burn.txt
-HTTP/1.1 206 Partial Content
-Content-Range: bytes 36-36/64
-Content-Disposition: attachment; filename*=UTF-8''sick-burn.txt
-Server: BogoHTTP
-Content-Length: 1
-Content-Type: application/octet-stream
-Date: Mon, 25 Nov 2019 01:42:18 GMT
-
-a⏎
-```
-
-## Client demo
-
-```
-➤ time ./client.py http://bogo.localhost:8080/sick-burn.txt
-your mother was a hamster and your father smelt of elderberries
-0.51user 0.03system 0:00.75elapsed 73%CPU (0avgtext+0avgdata 27900maxresident)k
-0inputs+0outputs (0major+7571minor)pagefaults 0swaps
+$ time ./client.py http://bogo.localhost:8080/random-200KB.bin > random-200KB-transferred.bin
+26.41user 2.08system 0:29.17elapsed 97%CPU (0avgtext+0avgdata 29356maxresident)k
+0inputs+392outputs (0major+7504minor)pagefaults 0swaps
+$ sha256sum random-100KB.bin random-100KB-transferred.bin 
+fc54eacf0dcfa05695f36a04c5f3f6447da197ccc04750b14d8ff800a2eb1138  random-100KB.bin
+fc54eacf0dcfa05695f36a04c5f3f6447da197ccc04750b14d8ff800a2eb1138  random-100KB-transferred.bin
+$ py 200/30
+6.666666666666667
+$ # a mere 6 KB/s on localhost !!
 ```
 
 ## Installation
@@ -63,7 +50,7 @@ Using the client:
 ./client.py http://127.0.0.1:8080/path/to/file
 ```
 
-This will download /path/to/root/path/to/file, using HTTP request per byte, and output the contents to stdout.
+This will download /path/to/root/path/to/file and output the contents to stdout.
 
 ## License
 

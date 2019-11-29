@@ -5,11 +5,14 @@
 import io
 import typing
 import random
+import struct
 import urllib.parse
 from functools import partial
 from pathlib import Path
 
 from aiohttp import web
+
+from formats import BogoHeader, BogoByte
 
 routes = web.RouteTableDef()
 
@@ -54,16 +57,6 @@ def file_size(f: typing.BinaryIO) -> int:
 	f.seek(0, io.SEEK_END)
 	return f.tell()
 
-def random_byte(f: typing.BinaryIO, length: int):
-	"""Return one random byte from a file. position is not preserved.
-	If the file is empty, return b''.
-	"""
-	len = file_size(f)
-	if len == 0:
-		return b''
-	f.seek(random.randrange(0, len))
-	return f.read(1)
-
 def file_range(f: typing.BinaryIO, data: bytes) -> slice:
 	"""Given a file and data read from that file, return a slice representing the range that was just read from it.
 	No slice attributes will be None. Step will always be 1.
@@ -84,17 +77,26 @@ async def get(request):
 
 	with open(path, 'rb', buffering=0) as f:
 		total_size = file_size(f)
-		b = random_byte(f, length=total_size)
-		range = file_range(f, b)
-		# HTTP requires a Range header in the request in order to return Partial Content.
-		# However, we require a custom client to transfer a file as it is.
-		return web.HTTPPartialContent(
-			body=b,
-			headers={
-				'Content-Range': content_range_header(range, length=total_size),
-				'Content-Disposition': content_disposition_header(path),
-			},
-		)
+
+		resp = web.StreamResponse()
+		# note: we can't use the Content-Length header because that indicates that we'll close the response
+		# after N bytes.
+		resp.headers['Content-Disposition'] = content_disposition_header(path)
+		resp.headers['Content-Type'] = 'application/bogo-http'
+		await resp.prepare(request)  # send headers to the client
+
+		if total_size == 0:
+			await resp.write(BogoHeader.pack(0, 0))
+			await resp.send_eof()
+			return
+
+		await resp.write(BogoHeader.pack(total_size, 0))
+
+		while True:
+			pos = random.randrange(0, total_size)
+			f.seek(pos)
+			b = f.read(1)[0]  # f.read() returns a bytes object and the first element is an integer
+			await resp.write(BogoByte.pack(pos, b))
 
 def get_app():
 	import os, types

@@ -5,14 +5,12 @@
 import io
 import typing
 import random
-import struct
 import urllib.parse
-from functools import partial
 from pathlib import Path
 
 from aiohttp import web
 
-from formats import BogoHeader, BogoByte
+from formats import MAX_SIZE, pack
 
 routes = web.RouteTableDef()
 
@@ -78,6 +76,9 @@ async def get(request):
 	with open(path, 'rb', buffering=0) as f:
 		total_size = file_size(f)
 
+		if total_size > MAX_SIZE:
+			raise web.HTTPForbidden(body='requested file too large')
+
 		resp = web.StreamResponse()
 		# note: we can't use the Content-Length header because that indicates that we'll close the response
 		# after N bytes.
@@ -86,17 +87,17 @@ async def get(request):
 		await resp.prepare(request)  # send headers to the client
 
 		if total_size == 0:
-			await resp.write(BogoHeader.pack(0, 0))
-			await resp.send_eof()
+			await resp.write(pack(0, 0))
+			await resp.write_eof()
 			return
 
-		await resp.write(BogoHeader.pack(total_size, 0))
+		await resp.write(pack(total_size, 0))
 
 		while True:
 			pos = random.randrange(0, total_size)
 			f.seek(pos)
 			b = f.read(1)[0]  # f.read() returns a bytes object and the first element is an integer
-			await resp.write(BogoByte.pack(pos, b))
+			await resp.write(pack(pos, b))
 
 def get_app():
 	import os, types

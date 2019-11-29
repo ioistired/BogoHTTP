@@ -5,21 +5,23 @@
 import aiohttp
 
 import headers
-from formats import BogoHeader, BogoByte
+from formats import NBYTES, MAX_SIZE, unpack
 
 BUFSIZE = 1024
 
 async def amain():
 	import sys
 	url = sys.argv[1]
-	async with \
-		aiohttp.ClientSession(headers={'User-Agent': 'BogoHTTP'}, raise_for_status=True) as sess, \
-		sess.get(url) as resp \
-	:
+	async with aiohttp.ClientSession(headers={'User-Agent': 'BogoHTTP'}) as sess, sess.get(url) as resp:
+		if resp.status not in range(200, 300):
+			import sys
+			print(await resp.text(), file=sys.stderr)
+			sys.exit(1)
+
 		_, filename = headers.parse_content_disposition_header(resp.headers['Content-Disposition'])
 		stream = resp.content
-		header = await stream.readexactly(BogoHeader.size)
-		size, _ = BogoHeader.unpack(header)
+		header = await stream.readexactly(NBYTES)
+		size, _ = unpack(header)
 
 		# TODO write to a file, with a .part file indicating which bytes have been downloaded so far
 		f = bytearray(size)
@@ -29,15 +31,16 @@ async def amain():
 		bytes_downloaded = 0
 
 		while bytes_downloaded < size:
-			data = await stream.readexactly(BogoByte.size)
-			pos, byte = BogoByte.unpack(data)
+			data = await stream.read(BUFSIZE)
+			for chunk_start in range(0, len(data), NBYTES):
+				pos, byte = unpack(data[chunk_start:chunk_start+NBYTES])
 
-			if has_downloaded[pos]:
-				continue
+				if has_downloaded[pos]:
+					continue
 
-			f[pos] = byte
-			has_downloaded[pos] = True
-			bytes_downloaded += 1
+				f[pos] = byte
+				has_downloaded[pos] = True
+				bytes_downloaded += 1
 
 	for chunk_start in range(0, size+(size//BUFSIZE+1), BUFSIZE):
 		sys.stdout.buffer.write(f[chunk_start:chunk_start+BUFSIZE])

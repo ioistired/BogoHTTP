@@ -102,7 +102,10 @@ def get_app():
 	import os, types
 	app = web.Application(middlewares=[advertise_self])
 	app['config'] = types.SimpleNamespace()
-	app['config'].base_path = Path(os.environ['BOGOHTTP_BASE_PATH']).resolve(strict=True)
+	base_path = Path(os.environ['BOGOHTTP_BASE_PATH'])
+	if not base_path.is_absolute():
+		raise RuntimeError('BOGOHTTP_BASE_PATH must be absolute')
+	app['config'].base_path = base_path.resolve(strict=True)
 	app.add_routes(routes)
 	return app
 

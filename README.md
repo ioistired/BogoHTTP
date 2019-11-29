@@ -9,7 +9,7 @@ $ dd if=/dev/urandom bs=1000 count=200 of=random-200KB.bin
 200+0 records in
 200+0 records out
 200000 bytes (200 kB, 195 KiB) copied, 0.00533823 s, 37.5 MB/s
-$ env BOGOHTTP_BASE_PATH=. ./server.py &
+$ BOGOHTTP_BASE_PATH="$(pwd)" ./server.py &
 $ ======== Running on http://0.0.0.0:8080 ========
 (Press CTRL+C to quit)
 
@@ -37,7 +37,7 @@ pip install -r requirements.txt
 Starting the server:
 
 ```
-env BOGOHTTP_BASE_PATH=/path/to/root ./server.py  # relative paths can be used too
+env BOGOHTTP_BASE_PATH=/path/to/root ./server.py
 ```
 
 Should you, for some godforsaken reason, decide to run this in production, follow the [aiohttp.web deployment docs].

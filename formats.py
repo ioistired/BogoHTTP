@@ -1,4 +1,4 @@
-# SPDX-License-Identifier: BluOak-1.0.0
+# SPDX-License-Identifier: BlueOak-1.0.0
 
 import struct
 
